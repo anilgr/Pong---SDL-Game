@@ -28,6 +28,7 @@ void Quit(void);
 Ball MakeBall(int);
 bool CoinFlip(void);
 void RenderBall(Ball*);
+void UpdateBall(Ball*, float);
 
 int main(int arc, char *argv[])
 {
@@ -104,6 +105,7 @@ void Update(float elapsed)
 {
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderClear(renderer);
+    UpdateBall(&b, elapsed);
     RenderBall(&b);
     SDL_RenderPresent(renderer);
 }
@@ -146,4 +148,26 @@ void RenderBall(Ball *ball)
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawRect(renderer, &ballRect);
+}
+
+void UpdateBall(Ball *ball, float elapsed)
+{
+    ball->x += ball->xSpeed * elapsed;
+    ball->y += ball->ySpeed * elapsed;
+
+    if(ball->x < 0) {
+        ball->xSpeed = fabs(ball->xSpeed);
+    }
+
+    if(ball->x > W_WIDTH - BALL_SIZE) {
+        ball->xSpeed = -1 * fabs(ball->xSpeed); 
+    }
+
+    if(ball->y < 0) {
+        ball->ySpeed = fabs(ball->ySpeed); 
+    }
+
+    if(ball->y > W_HEIGHT - BALL_SIZE) {
+        ball->ySpeed = -1 * fabs(ball->ySpeed); 
+    }
 }
