@@ -7,6 +7,12 @@
 #define W_WIDTH 600
 
 const int BALL_SIZE = 10;
+const int PLAYER_HEIGHT = 100;
+const int PLAYER_WIDTH = 10;
+const int PLAYER_MARGIN = 10;
+const float PLAYER_MOVE_SPEED = 400;
+const float BALL_SPEED = 200;
+bool served = false;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -22,13 +28,28 @@ typedef struct Ball
 
 Ball b;
 
+typedef struct Player
+{
+    int score;
+    float yPosition;
+} Player;
+
+Player playerA, playerB;
+
 bool Init(void);
 void Update(float);
 void Quit(void);
-Ball MakeBall(int);
 bool CoinFlip(void);
+
+Ball MakeBall(int);
 void RenderBall(Ball*);
 void UpdateBall(Ball*, float);
+
+Player MakePlayer(void);
+void UpdatePlayers(float);
+void RenderPlayers();
+
+void UpdateScore(int, int);
 
 int main(int arc, char *argv[])
 {
@@ -97,6 +118,8 @@ bool Init()
     }
 
     b = MakeBall(BALL_SIZE);
+    playerA = MakePlayer();
+    playerB = MakePlayer();
 
     return true;
 }
@@ -107,6 +130,10 @@ void Update(float elapsed)
     SDL_RenderClear(renderer);
     UpdateBall(&b, elapsed);
     RenderBall(&b);
+
+    UpdatePlayers(elapsed);
+    RenderPlayers();
+
     SDL_RenderPresent(renderer);
 }
 
@@ -121,7 +148,7 @@ void Quit()
 
 Ball MakeBall(int size)
 {
-    const float SPEED = 120;
+    const float SPEED = BALL_SPEED;
     Ball ball = {
         .x = W_WIDTH / 2 - size / 2,
         .y = W_HEIGHT / 2 - size / 2,
@@ -147,20 +174,30 @@ void RenderBall(Ball *ball)
     };
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawRect(renderer, &ballRect);
+    SDL_RenderFillRect(renderer, &ballRect);
 }
 
 void UpdateBall(Ball *ball, float elapsed)
 {
+    if(!served) {
+
+        ball->x = W_WIDTH/2 - BALL_SIZE/2;
+        ball->y = W_HEIGHT/2 - BALL_SIZE/2;
+        return;
+    }
     ball->x += ball->xSpeed * elapsed;
     ball->y += ball->ySpeed * elapsed;
 
     if(ball->x < 0) {
-        ball->xSpeed = fabs(ball->xSpeed);
+        // ball->xSpeed = fabs(ball->xSpeed);
+        UpdateScore(2, 100);
+        served = false;
     }
 
     if(ball->x > W_WIDTH - BALL_SIZE) {
-        ball->xSpeed = -1 * fabs(ball->xSpeed); 
+        // ball->xSpeed = -1 * fabs(ball->xSpeed); 
+        UpdateScore(1, 100);
+        served = false;
     }
 
     if(ball->y < 0) {
@@ -170,4 +207,126 @@ void UpdateBall(Ball *ball, float elapsed)
     if(ball->y > W_HEIGHT - BALL_SIZE) {
         ball->ySpeed = -1 * fabs(ball->ySpeed); 
     }
+}
+
+Player MakePlayer(void)
+{
+    Player player = {
+        .score = 0,
+        .yPosition = W_HEIGHT / 2
+    };
+
+    return player;
+}
+
+void UpdatePlayers(float elapsed)
+{
+    const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
+    if(keyboardState[SDL_SCANCODE_SPACE]) {
+        served = true;
+    }
+
+    if(keyboardState[SDL_SCANCODE_W]) {
+        playerA.yPosition -= PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if(keyboardState[SDL_SCANCODE_S]) {
+        playerA.yPosition += PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if(keyboardState[SDL_SCANCODE_UP]) {
+        playerB.yPosition -= PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if(keyboardState[SDL_SCANCODE_DOWN]) {
+        playerB.yPosition += PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if(playerA.yPosition > W_HEIGHT - PLAYER_HEIGHT/2) {
+        playerA.yPosition = W_HEIGHT - PLAYER_HEIGHT/2;
+    }
+
+    if(playerB.yPosition > W_HEIGHT - PLAYER_HEIGHT/2) {
+        playerB.yPosition = W_HEIGHT - PLAYER_HEIGHT/2;
+    }
+
+
+    if(playerA.yPosition < PLAYER_HEIGHT/2) {
+        playerA.yPosition = PLAYER_HEIGHT/2;
+    }
+
+    if(playerB.yPosition < PLAYER_HEIGHT/2) {
+        playerB.yPosition =  PLAYER_HEIGHT/2;
+    }
+
+    SDL_Rect player_a = {
+        .x = PLAYER_MARGIN,
+        .y = playerA.yPosition - PLAYER_HEIGHT / 2,
+        .h = PLAYER_HEIGHT,
+        .w = PLAYER_WIDTH
+    };
+    
+    SDL_Rect player_b = {
+        .x = W_WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+        .y = playerB.yPosition - PLAYER_HEIGHT / 2,
+        .h = PLAYER_HEIGHT,
+        .w = PLAYER_WIDTH
+    };
+
+    SDL_Rect ballRect = {
+        .x = b.x,
+        .y = b.y,
+        .h = b.size,
+        .w = b.size
+    };
+
+    if(SDL_HasIntersection(&player_a, &ballRect)) {
+        b.xSpeed = fabs(b.xSpeed);
+    }
+
+    if(SDL_HasIntersection(&player_b, &ballRect)) {
+        b.xSpeed = - fabs(b.xSpeed);
+    }
+
+}
+
+void RenderPlayers()
+{
+    SDL_Rect player_a = {
+        .x = PLAYER_MARGIN,
+        .y = playerA.yPosition - PLAYER_HEIGHT / 2,
+        .h = PLAYER_HEIGHT,
+        .w = PLAYER_WIDTH
+    };
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &player_a);
+
+    SDL_Rect player_b = {
+        .x = W_WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+        .y = playerB.yPosition - PLAYER_HEIGHT / 2,
+        .h = PLAYER_HEIGHT,
+        .w = PLAYER_WIDTH
+    };
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &player_b);
+}
+
+void UpdateScore(int player, int points) 
+{
+    if(player == 1) 
+    {
+        playerA.score += points; 
+    }
+
+    if(player == 2) 
+    {
+        playerB.score += points; 
+    }
+
+    char *fmt = "Player A : %d | Player B : %d";
+    int length = snprintf(NULL, 0, fmt, playerA.score, playerA.score);
+    char buf[length + 1];
+    snprintf(buf, length + 1, fmt, playerA.score, playerB.score);
+    SDL_SetWindowTitle(window, buf);
 }
