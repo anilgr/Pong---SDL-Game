@@ -26,7 +26,8 @@ bool Init(void);
 void Update(float);
 void Quit(void);
 Ball MakeBall(int);
-int CoinFlip(void);
+bool CoinFlip(void);
+void RenderBall(Ball*);
 
 int main(int arc, char *argv[])
 {
@@ -103,7 +104,7 @@ void Update(float elapsed)
 {
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderClear(renderer);
-
+    RenderBall(&b);
     SDL_RenderPresent(renderer);
 }
 
@@ -122,11 +123,27 @@ Ball MakeBall(int size)
     Ball ball = {
         .x = W_WIDTH / 2 - size / 2,
         .y = W_HEIGHT / 2 - size / 2,
-        .size = size};
+        .size = size,
+        .xSpeed = SPEED * (CoinFlip() ? 1 : -1),
+        .ySpeed = SPEED * (CoinFlip() ? 1 : -1)
+    };
     return ball;
 }
 
-int CoinFlip()
+bool CoinFlip()
 {
-    return rand() % 2 == 0 ? 1 : -1;
+    return rand() % 2 == 0 ? true : false;
+}
+
+void RenderBall(Ball *ball) 
+{
+    SDL_Rect ballRect = {
+        .x = ball->x,
+        .y = ball->y,
+        .h = ball->size,
+        .w = ball->size
+    };
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawRect(renderer, &ballRect);
 }
