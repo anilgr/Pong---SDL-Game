@@ -10,73 +10,60 @@ const int BALL_SIZE = 10;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
-SDL_Rect ball = {
-    .x = W_WIDTH/2-BALL_SIZE/2,
-    .y = W_HEIGHT/2-BALL_SIZE/2,
-    .w = BALL_SIZE,
-    .h = BALL_SIZE
-};
 
-bool Init();
-void Update();
-void Quit();
+typedef struct Ball
+{
+    float x;
+    float y;
+    float xSpeed;
+    float ySpeed;
+    int size;
+} Ball;
+
+Ball b;
+
+bool Init(void);
+void Update(float);
+void Quit(void);
+Ball MakeBall(int);
+int CoinFlip(void);
 
 int main(int arc, char *argv[])
 {
     atexit(Quit);
+    srand((unsigned int)time(NULL));
     bool loop = true;
     SDL_Event event;
-    time_t x;
-	srand((int)time(&x));
 
-    if(!Init())
+    if (!Init())
     {
+        exit(1);
         printf("Could not init game !");
     }
-
+    Uint32 lasttick = SDL_GetTicks();
     while (loop)
     {
         while (SDL_PollEvent(&event))
         {
-            if(event.type == SDL_QUIT)
-            {   
+            if (event.type == SDL_QUIT)
+            {
                 loop = false;
                 Quit();
             }
-            
-            
         }
 
-        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-        SDL_RenderClear(renderer);
-
-
-        if(rand()%2==0)
-        {
-            ball.x -= 4;
-        } else {
-            ball.x += 4;
-        }
-
-        if(rand()%2==0)
-        {
-            ball.y -= 4;
-        } else {
-            ball.y += 4;
-        }
-
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderFillRect(renderer, &ball);
-
-        SDL_RenderPresent(renderer);
+        Uint32 currentTick = SDL_GetTicks();
+        Uint32 diff = currentTick - lasttick;
+        float elapsed = diff / 1000.0f;
+        Update(elapsed);
+        lasttick = currentTick;
     }
-    
-    
+
     Quit();
     return 0;
 }
 
-bool Init() 
+bool Init()
 {
     //init sdl
     if (SDL_Init(SDL_INIT_VIDEO) > 0)
@@ -107,16 +94,39 @@ bool Init()
         return false;
     }
 
+    b = MakeBall(BALL_SIZE);
+
     return true;
 }
 
-void Update()
+void Update(float elapsed)
 {
+    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+    SDL_RenderClear(renderer);
 
+    SDL_RenderPresent(renderer);
 }
+
 void Quit()
 {
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
+    if (window != NULL)
+        SDL_DestroyWindow(window);
+    if (renderer != NULL)
+        SDL_DestroyRenderer(renderer);
     SDL_Quit();
+}
+
+Ball MakeBall(int size)
+{
+    const float SPEED = 120;
+    Ball ball = {
+        .x = W_WIDTH / 2 - size / 2,
+        .y = W_HEIGHT / 2 - size / 2,
+        .size = size};
+    return ball;
+}
+
+int CoinFlip()
+{
+    return rand() % 2 == 0 ? 1 : -1;
 }
