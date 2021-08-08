@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <time.h>
+#include <SDL2/SDL_ttf.h>
 
 #define W_HEIGHT 480
 #define W_WIDTH 600
@@ -16,6 +17,8 @@ bool served = false;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
+TTF_Font *font;
+SDL_Texture *label;
 
 typedef struct Ball
 {
@@ -49,7 +52,9 @@ Player MakePlayer(void);
 void UpdatePlayers(float);
 void RenderPlayers();
 
+bool TextInit(void);
 void UpdateScore(int, int);
+void RenderScore(void);
 
 int main(int arc, char *argv[])
 {
@@ -95,6 +100,12 @@ bool Init()
         return false;
     }
 
+    if(!TextInit())
+    {
+        printf("Could not init ttf");
+        exit(1);
+    }
+
     //create an sdl window
     window = SDL_CreateWindow(
         "Pong",
@@ -124,6 +135,15 @@ bool Init()
     return true;
 }
 
+bool TextInit() 
+{
+    if(TTF_Init() == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void Update(float elapsed)
 {
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
@@ -133,6 +153,7 @@ void Update(float elapsed)
 
     UpdatePlayers(elapsed);
     RenderPlayers();
+    RenderScore();
 
     SDL_RenderPresent(renderer);
 }
@@ -144,6 +165,10 @@ void Quit()
     if (renderer != NULL)
         SDL_DestroyRenderer(renderer);
     SDL_Quit();
+
+    SDL_DestroyTexture(label);
+    TTF_CloseFont(font);
+    TTF_Quit();
 }
 
 Ball MakeBall(int size)
@@ -323,10 +348,22 @@ void UpdateScore(int player, int points)
     {
         playerB.score += points; 
     }
+    
+}
+
+void RenderScore() 
+{
 
     char *fmt = "Player A : %d | Player B : %d";
     int length = snprintf(NULL, 0, fmt, playerA.score, playerA.score);
-    char buf[length + 1];
-    snprintf(buf, length + 1, fmt, playerA.score, playerB.score);
-    SDL_SetWindowTitle(window, buf);
+    char buf[length*2];
+    snprintf(buf, length*2, fmt, playerA.score, playerB.score);
+
+    font = TTF_OpenFont("IndieFlower-Regular.ttf", 32);
+    SDL_Color foregroundColor = { 255, 255, 255, 30 };
+    SDL_Surface *textSurface = TTF_RenderText_Blended(font, buf, foregroundColor);
+    label = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_RenderCopy(renderer, label, &(SDL_Rect){0,0,textSurface->w,textSurface->h}, &(SDL_Rect){W_WIDTH/2-textSurface->w/2,W_HEIGHT/2-textSurface->h/2,textSurface->w,textSurface->h});
+    SDL_FreeSurface(textSurface);
+
 }
