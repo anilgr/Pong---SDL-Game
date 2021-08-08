@@ -15,10 +15,10 @@ const float PLAYER_MOVE_SPEED = 400;
 const float BALL_SPEED = 200;
 bool served = false;
 
-SDL_Window *window;
-SDL_Renderer *renderer;
-TTF_Font *font;
-SDL_Texture *label;
+SDL_Window *window = NULL;
+SDL_Renderer *renderer = NULL;
+TTF_Font *font = NULL;
+SDL_Texture *label = NULL;
 
 typedef struct Ball
 {
@@ -76,7 +76,6 @@ int main(int arc, char *argv[])
             if (event.type == SDL_QUIT)
             {
                 loop = false;
-                Quit();
             }
         }
 
@@ -87,7 +86,6 @@ int main(int arc, char *argv[])
         lasttick = currentTick;
     }
 
-    Quit();
     return 0;
 }
 
@@ -131,6 +129,7 @@ bool Init()
     b = MakeBall(BALL_SIZE);
     playerA = MakePlayer();
     playerB = MakePlayer();
+    font = TTF_OpenFont("IndieFlower-Regular.ttf", 32);
 
     return true;
 }
@@ -160,15 +159,24 @@ void Update(float elapsed)
 
 void Quit()
 {
+    if(label != NULL)
+    {
+        SDL_DestroyTexture(label);
+    }
+
+    if(font != NULL)
+    {
+        TTF_CloseFont(font);
+    }
+
+    TTF_Quit();
+
     if (window != NULL)
         SDL_DestroyWindow(window);
     if (renderer != NULL)
         SDL_DestroyRenderer(renderer);
     SDL_Quit();
 
-    SDL_DestroyTexture(label);
-    TTF_CloseFont(font);
-    TTF_Quit();
 }
 
 Ball MakeBall(int size)
@@ -355,15 +363,35 @@ void RenderScore()
 {
 
     char *fmt = "Player A : %d | Player B : %d";
-    int length = snprintf(NULL, 0, fmt, playerA.score, playerA.score);
-    char buf[length*2];
-    snprintf(buf, length*2, fmt, playerA.score, playerB.score);
+    int length = snprintf(NULL, 0, fmt, playerA.score, playerB.score);
+    char* str = malloc( length + 1 );
+    snprintf( str, length + 1, fmt, playerA.score, playerB.score);
 
-    font = TTF_OpenFont("IndieFlower-Regular.ttf", 32);
     SDL_Color foregroundColor = { 255, 255, 255, 30 };
-    SDL_Surface *textSurface = TTF_RenderText_Blended(font, buf, foregroundColor);
+    SDL_Surface *textSurface = TTF_RenderText_Blended(font, str, foregroundColor);
     label = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_RenderCopy(renderer, label, &(SDL_Rect){0,0,textSurface->w,textSurface->h}, &(SDL_Rect){W_WIDTH/2-textSurface->w/2,W_HEIGHT/2-textSurface->h/2,textSurface->w,textSurface->h});
-    SDL_FreeSurface(textSurface);
+
+    SDL_Rect src = { 
+        .x = 0, 
+        .y = 0, 
+        .w = textSurface->w, 
+        .h = textSurface->h
+    };
+    SDL_Rect dst = { 
+        .x = W_WIDTH/2-textSurface->w/2, 
+        .y = (W_HEIGHT/2-textSurface->h/2), 
+        .w = textSurface->w, 
+        .h = textSurface->h};
+
+    SDL_RenderCopy(renderer, label, &src, &dst);
+    if(textSurface != NULL)
+    {
+        SDL_FreeSurface(textSurface);
+    }
+
+    if(str != NULL)
+    {
+        free(str);
+    }
 
 }
