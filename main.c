@@ -389,6 +389,10 @@ void RenderScore()
         SDL_FreeSurface(textSurface);
     }
 
+    if(label != NULL) {
+        SDL_DestroyTexture(label);
+    }
+
     if(str != NULL)
     {
         free(str);
